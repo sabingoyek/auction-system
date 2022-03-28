@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 import crud, deps, models, security, schemas
-from api import auctions, users
+from api import auctions, users, bids
 from database import SessionLocal, engine
 from settings import settings
 
@@ -11,6 +11,7 @@ app = FastAPI()
 
 app.include_router(users.router, tags=["users"])
 app.include_router(auctions.router, tags=["auctions"])
+app.include_router(bids.router, tags=["bids"])
 
 @app.on_event("startup")
 def startup_event():
@@ -19,6 +20,8 @@ def startup_event():
     user = crud.get_user_by_email(db, settings.super_user_email)
     if not user:
         user_in = schemas.UserCreate(
+            first_name=settings.super_user_first_name,
+            last_name=settings.super_user_last_name,
             email=settings.super_user_email, password=settings.super_user_password
         )
         crud.create_user(db, user_in)
