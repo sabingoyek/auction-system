@@ -4,16 +4,43 @@ from typing import List
 from pydantic import BaseModel
 
 class BidBase(BaseModel):
-    price: int 
-
-class BidCreate(BidBase):
-    pass
-
-class Bid(BidBase):
     id: int
-    auction_id: int
+    price: int 
     owner_id: int
     bid_date: datetime
+
+    class Config:
+        orm_mode = True
+
+class BidCreate(BaseModel):
+    price: int
+
+class Bid(BidBase):
+    auction_id: int
+
+    class Config:
+        orm_mode = True
+
+class ItemBase(BaseModel):
+    id: int
+    title: str
+    description: str
+    picture_url: str = None
+
+    class Config:
+        orm_mode = True
+
+class ItemCreate(ItemBase):
+    auction_id: int
+
+class Item(BaseModel):
+    id: int
+    auction_id: int
+    title: str
+    description: str
+    picture_url: str = None
+
+    
 
     class Config:
         orm_mode = True
@@ -31,7 +58,9 @@ class Auction(AuctionBase):
     id: int
     owner_id: int
     creation_date: datetime
-    bids: List[Bid] = []
+    items: List[ItemBase] = []
+    #item: Item = None
+    bids: List[BidBase] = []
 
     class Config:
         orm_mode = True

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 import crud, deps, models, security, schemas
-from api import auctions, users, bids
+from api import auctions, users, bids, items
 from database import SessionLocal, engine
 from settings import settings
 
@@ -12,6 +12,7 @@ app = FastAPI()
 app.include_router(users.router, tags=["users"])
 app.include_router(auctions.router, tags=["auctions"])
 app.include_router(bids.router, tags=["bids"])
+app.include_router(items.router, tags=["items"])
 
 @app.on_event("startup")
 def startup_event():

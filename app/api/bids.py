@@ -29,7 +29,6 @@ def create_bid_for_auction(
         raise HTTPException(status_code=404, detail="Auction not found")
     return crud.create_auction_bid(db=db, bid=bid, auction_id=auction_id, owner_id=current_user.id)
 
-
 @router.get("/auctions/{auction_id}/bids/", response_model=List[schemas.Bid])
 def read_bids_for_auction(auction_id: int, skip:int=0, limit:int=100, db: Session=Depends(deps.get_db)):
     """
@@ -40,7 +39,16 @@ def read_bids_for_auction(auction_id: int, skip:int=0, limit:int=100, db: Sessio
     db_auction = crud.get_auction(db=db, auction_id=auction_id)
     if db_auction is None:
         raise HTTPException(status_code=404, detail="Auction not found")
-    bids = crud.get_bids(db=db, auction_id=auction_id, skip=skip, limit=limit)
+    bids = crud.get_bids_for_auction(db=db, auction_id=auction_id, skip=skip, limit=limit)
+    return bids
+@router.get("/bids/", response_model=List[schemas.Bid])
+def read_all_bids(skip:int=0, limit:int=100, db: Session=Depends(deps.get_db)):
+    """
+    Read all bids
+    Does'nt require authentication.
+    The auction must exist.
+    """
+    bids = crud.get_bids(db=db, skip=skip, limit=limit)
     return bids
 
 @router.get("/bids/{bid_id}/", response_model=schemas.Bid)
@@ -49,6 +57,8 @@ def read_bid(bid_id: int, db: Session = Depends(deps.get_db)):
     Read a bid. Doesn't nedd authentication.
     """
     bid = crud.get_bid(db, bid_id=bid_id)
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
     return bid
 
 @router.get("/users/me/bids/", response_model=List[schemas.Bid], dependencies=[Depends(deps.get_current_user)])
