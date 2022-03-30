@@ -9,7 +9,7 @@ from database import SessionLocal, engine
 from settings import settings
 
 app = FastAPI()
-
+"""
 origins = [
     "http://localhost.brokis.com",
     "https://localhost.brokis.com",
@@ -26,7 +26,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+"""
 app.include_router(users.router, tags=["users"])
 app.include_router(auctions.router, tags=["auctions"])
 app.include_router(items.router, tags=["items"])
