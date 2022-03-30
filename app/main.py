@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
 
 import crud, deps, models, schemas, security
 from api import items, users, auctions, bids
@@ -8,6 +9,23 @@ from database import SessionLocal, engine
 from settings import settings
 
 app = FastAPI()
+
+origins = [
+    "http://localhost.brokis.com",
+    "https://localhost.brokis.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://localhost:8082",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(users.router, tags=["users"])
 app.include_router(auctions.router, tags=["auctions"])
