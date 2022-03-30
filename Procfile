@@ -1,1 +1,1 @@
-web: uvicorn main:app --app-dir app/ --workers 4
+web: uvicorn main:app --workers 4
