@@ -1,15 +1,9 @@
 from datetime import datetime
-import email
-from email.policy import default
-from email.utils import localtime
-from enum import unique
-from operator import index
-from typing import Dict
-from xmlrpc.client import DateTime
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -22,6 +16,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     auctions = relationship("Auction", back_populates="owner")
+    bids = relationship("Bid", back_populates="owner")
 
 class Auction(Base):
     __tablename__ = "auctions"
@@ -30,24 +25,12 @@ class Auction(Base):
     title = Column(String, index=True)
     description = Column(String, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
-    start_date = Column(String, default=datetime.now())
+    start_date = Column(String)
+    is_active = Column(Boolean, default=False)
     creation_date = Column(String, default=datetime.now())
 
     owner = relationship("User", back_populates="auctions")
-    bids = relationship("Bid", back_populates="auction")
     items = relationship("Item", back_populates="auction")
-
-class Bid(Base):
-    __tablename__ = "bids"
-
-    id = Column(Integer, primary_key=True, index=True)
-    bid_date = Column(String, default=datetime.now())
-    price = Column(Integer)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    auction_id = Column(Integer, ForeignKey("auctions.id"))
-
-    auction = relationship("Auction", back_populates="bids")
-
 
 class Item(Base):
     __tablename__ = "items"
@@ -55,7 +38,22 @@ class Item(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String, index=True)
-    auction_id = Column(Integer, ForeignKey("auctions.id"))
+    start_price= Column(Integer)
     picture_url = Column(String)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    auction_id = Column(Integer, ForeignKey("auctions.id"))
 
     auction = relationship("Auction", back_populates="items")
+    bids = relationship("Bid", back_populates="item")
+
+class Bid(Base):
+    __tablename__ = "bids"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bid_date = Column(String, default=datetime.now())
+    price = Column(Integer)
+    bidder_id = Column(Integer, ForeignKey("users.id"))
+    item_id = Column(Integer, ForeignKey("items.id"))
+
+    item = relationship("Item", back_populates="bids")
+    owner = relationship("User", back_populates="bids")

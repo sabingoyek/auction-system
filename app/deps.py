@@ -11,6 +11,7 @@ from settings import settings
 
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
 
+
 def get_db():
     try:
         db = SessionLocal()
@@ -18,14 +19,16 @@ def get_db():
     finally:
         db.close()
 
+
 def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)):
+    db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
+):
     try:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[security.ALGORITHM]
         )
-        token_data = schemas.TokenPayLoad(**payload)
-    except (jwt.JWSError, ValidationError):
+        token_data = schemas.TokenPayload(**payload)
+    except (jwt.JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
@@ -34,6 +37,7 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
 
 def get_current_superuser(current_user: models.User = Depends(get_current_user)):
     if not current_user.email == settings.super_user_email:
