@@ -54,11 +54,11 @@ def read_user_published_auctions(user_id: int,skip: int = 0, limit: int = 100, d
 
 
 @router.get("/auctions/", response_model=List[schemas.Auction])
-def read_all_published_auctions(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def read_all_published_auctions(is_active: bool = True, skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Read all published auctions. Doesn't need authentication.
     """
-    return crud.get_all_published_auctions(db, skip=skip, limit=limit)
+    return crud.get_published_auctions(db, is_active=is_active, skip=skip, limit=limit)
 
 @router.get("/auctions/{auction_id}/", response_model=schemas.Auction)
 def read_auction(auction_id: int, db: Session = Depends(deps.get_db)):

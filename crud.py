@@ -63,8 +63,8 @@ def get_user_unpublished_inactive_auctions(db: Session, user_id: int, skip:int=0
     return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == False, models.Auction.is_active == False).offset(skip).limit(limit).all()
 
 
-def get_all_published_auctions(db: Session, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.is_published == True).offset(skip).limit(limit).all()
+def get_published_auctions(db: Session, is_active: bool = True, skip:int=0, limit: int = 100):
+    return db.query(models.Auction).filter(models.Auction.is_published == True, models.Auction.is_active == is_active).offset(skip).limit(limit).all()
 
 def get_user_published_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
     return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == True).offset(skip).limit(limit).all()
