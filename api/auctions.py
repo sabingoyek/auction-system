@@ -110,11 +110,13 @@ def terminate_auction(auction_id: int, user: schemas.User = Depends(deps.get_cur
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     if not db_auction.is_published:
-        raise HTTPException(status_code=404, detail="This auction is not published")
+        raise HTTPException(status_code=403, detail="This auction is not published")
     if not db_auction.is_active:
-        raise HTTPException(status_code=404, detail="This auction is already terminated.")
+        raise HTTPException(status_code=403, detail="This auction is already terminated.")
     if db_auction.owner_id is not user.id:
-        raise HTTPException(status_code=404, detail="You are not allowed to terminate this auction, because you are not it owner.")
+        raise HTTPException(status_code=403, detail="You are not allowed to terminate this auction, because you are not it owner.")
+    if not db_auction.items[0].bids:
+        raise HTTPException(status_code=403, detail="You are not allowed to terminate this auction, because it has not bid")
     setattr(db_auction, "is_active", False)
     setattr(db_auction, "end_date", datetime.now())
     db.add(db_auction)

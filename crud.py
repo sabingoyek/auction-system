@@ -94,7 +94,7 @@ def create_auction_item(db: Session, item: schemas.ItemCreate, auction_id:int, o
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
-    db.close()
+    #db.close()
     return db_item
 
 def get_item(db: Session, item_id: int):
