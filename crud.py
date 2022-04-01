@@ -50,30 +50,13 @@ def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
     db.refresh(db_item)
     return db_item
 
-def get_user_published_active_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == True, models.Auction.is_active == True).offset(skip).limit(limit).all()
+def get_user_auctions(db: Session, user_id: int, is_published: bool, is_active: bool, skip:int=0, limit: int = 100):
+    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == is_published, models.Auction.is_active == is_active).offset(skip).limit(limit).all()
 
-def get_user_published_inactive_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == True, models.Auction.is_active == False).offset(skip).limit(limit).all()
+def get_auctions(db: Session, is_published: bool = True, is_active: bool = True, skip:int=0, limit: int = 100):
+    return db.query(models.Auction).filter(
+        models.Auction.is_published == is_published, models.Auction.is_active == is_active).offset(skip).limit(limit).all()
 
-def get_user_unpublished_active_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == False, models.Auction.is_active == True).offset(skip).limit(limit).all()
-
-def get_user_unpublished_inactive_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == False, models.Auction.is_active == False).offset(skip).limit(limit).all()
-
-
-def get_published_auctions(db: Session, is_active: bool = True, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.is_published == True, models.Auction.is_active == is_active).offset(skip).limit(limit).all()
-
-def get_user_published_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == True).offset(skip).limit(limit).all()
-
-def get_user_unpublished_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_published == False).offset(skip).limit(limit).all()
-
-def get_user_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
-    return db.query(models.Auction).filter(models.Auction.owner_id == user_id).offset(skip).limit(limit).all()
 
 def get_auction(db: Session, auction_id: int):
     return db.query(models.Auction).filter(models.Auction.id == auction_id).first()
@@ -88,6 +71,9 @@ def create_user_auction(db: Session, auction: schemas.AuctionCreate, user_id: in
 
 def get_auction_items(db: Session, auction_id: int, skip:int, limit:int):
     return db.query(models.Item).filter(models.Item.auction_id == auction_id).offset(skip).limit(limit).all()
+
+def get_auction_item(db: Session, auction_id: int, item_id: int):
+    return db.query(models.Item).filter(models.Item.auction_id == auction_id, models.Item.id == item_id).first()
 
 def create_auction_item(db: Session, item: schemas.ItemCreate, auction_id:int, owner_id: int):
     db_item = models.Item(**item.dict(), auction_id=auction_id, owner_id=owner_id)
@@ -105,6 +91,12 @@ def get_items(db: Session, skip:int, limit:int):
 
 def get_user_items(db: Session, user_id: int, skip:int, limit:int):
     return db.query(models.Item).filter(models.Item.owner_id == user_id).offset(skip).limit(limit).all()
+
+def get_user_items_by_auction(db: Session, user_id: int, auction_id: int, skip:int, limit:int):
+    return db.query(models.Item).filter(models.Item.owner_id == user_id, models.Item.auction_id == auction_id).offset(skip).limit(limit).all()
+
+def get_user_item(db: Session, user_id: int, item_id: int):
+    return db.query(models.Item).filter(models.Item.id == item_id, models.Item.owner_id == user_id).first()
 
 def create_item_bid(db: Session, bid: schemas.Bid, item_id: int, owner_id: int):
     bid_date = datetime.now()

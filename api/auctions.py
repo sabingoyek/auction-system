@@ -29,27 +29,17 @@ def read_my_auctions(is_published: bool = True, is_active: bool = True, skip: in
     Default value for the parameter is True.
     Need authentication.
     """
-    if is_published:
-        if is_active:
-            return crud.get_user_published_active_auctions(db, user_id=user.id, skip=skip, limit=limit)
-        else:
-            return crud.get_user_published_inactive_auctions(db, user_id=user.id, skip=skip, limit=limit)
-
-    else:
-        if is_active:
-            return crud.get_user_unpublished_active_auctions(db, user_id=user.id, skip=skip, limit=limit)
-        else:
-            return crud.get_user_unpublished_inactive_auctions(db, user_id=user.id, skip=skip, limit=limit)
+    return crud.get_user_auctions(db, user_id=user.id, is_published=is_published, is_active=is_active, skip=skip, limit=limit)
 
 
 @router.get("/users/{user_id}/auctions/", response_model=List[schemas.Auction])
-def read_user_published_auctions(user_id: int,skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
+def read_user_published_auctions(user_id: int, is_active: bool = True, skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_db)):
     """
     Read all the auctions that a specific user published. Doesn't need authentication.
     """
     if not crud.get_user(db, user_id=user_id):
         raise HTTPException(status_code=404, detail="User not found")
-    auctions = crud.get_user_published_auctions(db, user_id=user_id, skip=skip, limit=limit)
+    auctions = crud.get_user_auctions(db, user_id=user_id, is_published = True, is_active=is_active,skip=skip, limit=limit)
     return auctions
 
 
@@ -58,7 +48,7 @@ def read_all_published_auctions(is_active: bool = True, skip: int = 0, limit: in
     """
     Read all published auctions. Doesn't need authentication.
     """
-    return crud.get_published_auctions(db, is_active=is_active, skip=skip, limit=limit)
+    return crud.get_auctions(db, is_published=True, is_active=is_active, skip=skip, limit=limit)
 
 @router.get("/auctions/{auction_id}/", response_model=schemas.Auction)
 def read_auction(auction_id: int, db: Session = Depends(deps.get_db)):
@@ -70,7 +60,7 @@ def read_auction(auction_id: int, db: Session = Depends(deps.get_db)):
         if auction.is_published:
             return auction
         else:
-            raise HTTPException(status_code=404, detail="Auction not published yet")
+            raise HTTPException(status_code=403, detail="Auction not published yet")
     else:
         raise HTTPException(status_code=404, detail="Auction not found")
 
@@ -80,9 +70,9 @@ def publish_auction(auction_id: int, user: schemas.User = Depends(deps.get_curre
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     if db_auction.is_published:
-        raise HTTPException(status_code=404, detail="This auction is already published")
+        raise HTTPException(status_code=403, detail="This auction is already published")
     if db_auction.owner_id is not user.id:
-        raise HTTPException(status_code=404, detail="You are not allowed to publish this auction, because you are not it owner.")
+        raise HTTPException(status_code=403, detail="You are not allowed to publish this auction, because you are not it owner.")
     if not db_auction.items:
         raise HTTPException(status_code=404, detail="Your auction doesn't have any item yet. So you can't publish it. Create an item and retry.")
     setattr(db_auction, "is_published", True)
@@ -99,6 +89,8 @@ def get_auction_status(auction_id: int, db: Session = Depends(deps.get_db)):
     db_auction = crud.get_auction(db, auction_id=auction_id)
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
+    if not db_auction.is_published:
+        raise HTTPException(status_code=403, detail="Action forbidden: auction not published yet")
     if not db_auction.is_active:
         return False
     return True
@@ -116,7 +108,7 @@ def terminate_auction(auction_id: int, user: schemas.User = Depends(deps.get_cur
     if db_auction.owner_id is not user.id:
         raise HTTPException(status_code=403, detail="You are not allowed to terminate this auction, because you are not it owner.")
     if not db_auction.items[0].bids:
-        raise HTTPException(status_code=403, detail="You are not allowed to terminate this auction, because it has not bid")
+        raise HTTPException(status_code=403, detail="Action forbidden: this auction has not any bid")
     setattr(db_auction, "is_active", False)
     setattr(db_auction, "end_date", datetime.now())
     db.add(db_auction)
@@ -124,7 +116,7 @@ def terminate_auction(auction_id: int, user: schemas.User = Depends(deps.get_cur
     db.refresh(db_auction)
     return db_auction
 
-@router.delete("/auction/{auction_id}", dependencies=[Depends(deps.get_current_user)])
+@router.delete("/auctions/{auction_id}", dependencies=[Depends(deps.get_current_user)])
 def delete_auction(auction_id: int, user: schemas.User = Depends(deps.get_current_user), db: Session = Depends(deps.get_db)):
     """Delete an unpublished auction. The performer must be its owner. 
     """

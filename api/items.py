@@ -19,12 +19,14 @@ def create_item_for_auction(
     
     Requires authentication and the item will be assigned to the auction. The current user must the owner of the auction.
     """
-    # Check existence of the auction
+    
     db_auction = crud.get_auction(db, auction_id=auction_id)
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     if db_auction.items:
         raise HTTPException(status_code=403, detail="Action forbidden: Auction already has an item.")
+    if db_auction.owner_id != owner.id:
+        raise HTTPException(status_code=403, detail="Action forbidden: you are not the owner ot this auction")
     if db_auction.is_published:
         raise HTTPException(status_code=403, detail="Can't create item for this auction: it is already published")
     return crud.create_auction_item(db=db, item=item, auction_id=auction_id, owner_id=owner.id)
@@ -32,23 +34,17 @@ def create_item_for_auction(
 @router.get("/auctions/{auction_id}/items/", response_model=List[schemas.Item])
 def read_auction_items(
     auction_id: int,
-    current_user = Depends(deps.get_current_user),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db)):
     """
-    Get the items of an auction.
-    Access to anyone if it is published.
-    Otherwise only the owner of the auction can access to it or the owner of the auction that it belong to.
+    Get the items of an published auction.
     """
     db_auction = crud.get_auction(db, auction_id=auction_id)
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     if not db_auction.is_published:
-        if db_auction.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="You are not allowed to access these items: the auction are not yet published.")
-        else:
-            return crud.get_auction_items(db=db,auction_id=auction_id, skip=skip, limit=limit)
+        raise HTTPException(status_code=403, detail="You are not allowed to access these items: the auction are not yet published.")
     else:
         return crud.get_auction_items(db=db,auction_id=auction_id, skip=skip, limit=limit)
 
@@ -63,26 +59,100 @@ def read_all_items(
     return crud.get_items(db=db,skip=skip, limit=limit)
 
 @router.get("/items/{item_id}/", response_model=schemas.Item)
-def read_item(
-    item_id: int,
-    db: Session = Depends(deps.get_db)):
+def read_item(item_id:int, db: Session = Depends(deps.get_db)):
     """
-    Read an items.
+    Read an item.
     """
-    item = crud.get_item(db=db,item_id=item_id)
+    item = crud.get_item(db=db, item_id=item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    
+    item_auction = crud.get_auction(db, item.auction_id)
+    if not item_auction.is_published:
+        raise HTTPException(status_code=403, detail="Action forbidden: Item not published yet.")
     return item
 
-@router.get("/users/{user_id}/items/", response_model=List[schemas.Item])
-def read_user_items(
-    user_id: int,
+
+@router.get("/users/me/items/",response_model=List[schemas.Item], dependencies=[Depends(deps.get_current_user)])
+def read_my_items(
+    current_user: schemas.User = Depends(deps.get_current_user),
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db)):
     """
-    Read an user's items.
+    Read the connected user's items.
     """
-    items = crud.get_user_items(db=db, user_id=user_id, skip=skip, limit=limit)
+    items = crud.get_user_items(db=db, user_id=current_user.id, skip=skip, limit=limit)
     return items
+
+@router.get("/users/me/items/{item_id}/",response_model=schemas.Item, dependencies=[Depends(deps.get_current_user)])
+def read_my_item(
+    item_id: int,
+    current_user: schemas.User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_db)):
+    """
+    Read the connected user's items.
+    """
+    item = crud.get_item(db=db, item_id=item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if item.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Action forbidden: your are not the owner of this item.")
+    return item
+
+@router.get("/users/me/auctions/{auction_id}/items/",response_model=List[schemas.Item], dependencies=[Depends(deps.get_current_user)])
+def read_my_items_by_auction(
+    auction_id: int,
+    current_user: schemas.User = Depends(deps.get_current_user),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(deps.get_db)):
+    """
+    Read the connected user's items by auction.
+    """
+    item_auction = crud.get_auction(db, auction_id=auction_id)
+    if not item_auction:
+        raise HTTPException(status_code=404, detail="Auction not found")
+    items = crud.get_user_items_by_auction(db=db, user_id=current_user.id, auction_id=auction_id, skip=skip, limit=limit)
+    return items
+
+@router.patch("/user/me/items/{item_id}/",response_model=schemas.Item, dependencies=[Depends(deps.get_current_user)])
+def update_my_item(
+    item_id: int,
+    item: schemas.ItemBase,
+    current_user: schemas.User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_db)):
+    """
+    Update the item
+    """
+    db_item = crud.get_item(db, item_id = item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if db_item.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Action forbidden: your are not the owner of this item.")
+    item_auction = crud.get_auction(db, auction_id=db_item.auction_id)
+    if item_auction.is_published:
+        raise HTTPException(status_code=403, detail="Item already published.")
+    
+    item_data = item.dict(exclude_unset=True)
+    for key, value in item_data.items():
+        setattr(db_item, key, value)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.delete("/user/me/items/{item_id}", dependencies=[Depends(deps.get_current_user)])
+def delete_item(item_id: int, user: schemas.User = Depends(deps.get_current_user), db: Session = Depends(deps.get_db)):
+    """Delete an unpublished item. The performer must be its owner. 
+    """
+    db_item = crud.get_item(db, item_id=item_id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if  db_item.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Action forbidden: Your aren't the owner of this item")
+    item_auction = crud.get_auction(db, auction_id=db_item.auction_id)
+    if item_auction.is_published:
+        raise HTTPException(status_code=403, detail="Item already published.")
+    db.delete(db_item)
+    db.commit()
+    return {"ok": True}
