@@ -19,7 +19,7 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(deps.get_d
     return users
 
 
-@router.get("/users/me", response_model=schemas.User)
+@router.get("/users/me/", response_model=schemas.User)
 def read_user_me(
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user),
@@ -30,7 +30,7 @@ def read_user_me(
     return current_user
 
 
-@router.get("/users/{user_id}", response_model=schemas.User)
+@router.get("/users/{user_id}/", response_model=schemas.User)
 def read_user(user_id: int, db: Session = Depends(deps.get_db)):
     """
     Read the data for a specific user.

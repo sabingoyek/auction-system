@@ -3,6 +3,8 @@ from typing import List
 from pydantic import BaseModel
 from datetime import datetime
 
+AUCTION_NUMBER = 0
+
 class BidBase(BaseModel):
     price: int
 #   bidder_id: int  # get current user 
@@ -41,16 +43,21 @@ class Item(ItemBase):
 class AuctionBase(BaseModel):
     title: str
     description: str = None
-    start_date: datetime = None
-    is_active: bool = False
 
 class AuctionCreate(AuctionBase):
     pass
+
+class AuctionUpdate(BaseModel):
+    is_published: bool = True
 
 class Auction(AuctionBase):
     id: int
     owner_id: int           # path parameter
     creation_date: datetime
+    start_date: datetime = None
+    end_date: datetime = None
+    is_published: bool = False
+    is_active: bool = False
     items: List[Item] = []
     class Config:
         orm_mode = True
@@ -81,3 +88,5 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: int
+
+

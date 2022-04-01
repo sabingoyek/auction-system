@@ -26,11 +26,13 @@ class Auction(Base):
     description = Column(String, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     start_date = Column(String)
+    end_date = Column(String)
+    is_published = Column(Boolean, default=False)
     is_active = Column(Boolean, default=False)
     creation_date = Column(String, default=datetime.now())
 
     owner = relationship("User", back_populates="auctions")
-    items = relationship("Item", back_populates="auction")
+    items = relationship("Item", back_populates="auction", cascade="all, delete", passive_deletes=True)
 
 class Item(Base):
     __tablename__ = "items"
