@@ -23,8 +23,10 @@ def create_item_for_auction(
     db_auction = crud.get_auction(db, auction_id=auction_id)
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
+    if db_auction.items:
+        raise HTTPException(status_code=403, detail="Action forbidden: Auction already has an item.")
     if db_auction.is_published:
-        raise HTTPException(status_code=404, detail="Can't create item for this auction: it is already published")
+        raise HTTPException(status_code=403, detail="Can't create item for this auction: it is already published")
     return crud.create_auction_item(db=db, item=item, auction_id=auction_id, owner_id=owner.id)
 
 @router.get("/auctions/{auction_id}/items/", response_model=List[schemas.Item])
@@ -37,26 +39,26 @@ def read_auction_items(
     """
     Get the items of an auction.
     Access to anyone if it is published.
-    Otherwise only the owner of the auction can access to it.
+    Otherwise only the owner of the auction can access to it or the owner of the auction that it belong to.
     """
     db_auction = crud.get_auction(db, auction_id=auction_id)
     if not db_auction:
         raise HTTPException(status_code=404, detail="Auction not found")
     if not db_auction.is_published:
-        if db_auction.owner_id is not current_user.id:
-            raise HTTPException(status_code=404, detail="You are not allowed to access these items: the auction are not yet published.")
+        if db_auction.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You are not allowed to access these items: the auction are not yet published.")
         else:
             return crud.get_auction_items(db=db,auction_id=auction_id, skip=skip, limit=limit)
     else:
         return crud.get_auction_items(db=db,auction_id=auction_id, skip=skip, limit=limit)
 
-@router.get("/items/", response_model=List[schemas.Item])
+@router.get("/items/", response_model=List[schemas.Item], dependencies=[Depends(deps.get_current_superuser)])
 def read_all_items(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db)):
     """
-    Read all items. Published and Unpublished.
+    Read all items. Published and Unpublished. Must be super user
     """
     return crud.get_items(db=db,skip=skip, limit=limit)
 
@@ -70,6 +72,7 @@ def read_item(
     item = crud.get_item(db=db,item_id=item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+    
     return item
 
 @router.get("/users/{user_id}/items/", response_model=List[schemas.Item])
