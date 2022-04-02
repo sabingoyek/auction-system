@@ -66,7 +66,7 @@ class Auction(AuctionBase):
 class UserBase(BaseModel):
     first_name:str
     last_name: str
-    email: EmailStr
+    email: str
 
     class Config:
         orm_mode = True
