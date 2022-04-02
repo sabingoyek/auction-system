@@ -59,3 +59,4 @@ class Bid(Base):
 
     item = relationship("Item", back_populates="bids")
     owner = relationship("User", back_populates="bids")
+

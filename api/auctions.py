@@ -91,9 +91,8 @@ def get_auction_status(auction_id: int, db: Session = Depends(deps.get_db)):
         raise HTTPException(status_code=404, detail="Auction not found")
     if not db_auction.is_published:
         raise HTTPException(status_code=403, detail="Action forbidden: auction not published yet")
-    if not db_auction.is_active:
-        return False
-    return True
+    return db_auction.is_active
+    #return crud.get_auction_active_status(db=db, auction_id=auction_id).is_active
 
 @router.patch("/auctions/{auction_id}/status", response_model=schemas.Auction, dependencies=[Depends(deps.get_current_user)])
 def terminate_auction(auction_id: int, user: schemas.User = Depends(deps.get_current_user), db: Session = Depends(deps.get_db)):

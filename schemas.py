@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List
 
 from pydantic import BaseModel
@@ -67,6 +68,9 @@ class UserBase(BaseModel):
     last_name: str
     email: str
 
+    class Config:
+        orm_mode = True
+
 
 class UserCreate(UserBase):
     password: str
@@ -80,6 +84,10 @@ class User(UserBase):
     class Config:
         orm_mode = True
 
+class BidOrder(str, Enum):
+    id = "id"
+    bid_date = "bid_date"
+    price = "price"
 
 class Token(BaseModel):
     access_token: str

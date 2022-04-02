@@ -61,6 +61,12 @@ def get_auctions(db: Session, is_published: bool = True, is_active: bool = True,
 def get_auction(db: Session, auction_id: int):
     return db.query(models.Auction).filter(models.Auction.id == auction_id).first()
 
+def get_auction_published_status(db: Session, auction_id: int):
+    return db.query(models.Auction).filter(models.Auction.id == auction_id).with_entities(models.Auction.is_published)
+
+def get_auction_active_status(db: Session, auction_id: int):
+    return db.query(models.Auction).filter(models.Auction.id == auction_id).with_entities(models.Auction.is_active).first()
+
 def create_user_auction(db: Session, auction: schemas.AuctionCreate, user_id: int):
     creation_date= datetime.now()
     db_auction = models.Auction(**auction.dict(), owner_id=user_id, creation_date=creation_date)
@@ -106,11 +112,30 @@ def create_item_bid(db: Session, bid: schemas.Bid, item_id: int, owner_id: int):
     db.refresh(db_bid)
     return db_bid
 
-def get_bids_for_item(db:Session, item_id:int, skip:int, limit:int):
-    return db.query(models.Bid).filter(models.Bid.item_id == item_id).offset(skip).limit(limit).all()
+def get_bids_for_item(db:Session, item_id:int, order_by: schemas.BidOrder = "price", desc_order: bool=True, skip:int = 0, limit:int = 100):
+    if order_by == "price":
+        if desc_order:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.price.desc()).offset(skip).limit(limit).all()
+        else:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.price.asc()).offset(skip).limit(limit).all()
+    elif order_by == "bid_date":
+        if desc_order:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.bid_date.desc()).offset(skip).limit(limit).all()
+        else:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.bid_date.asc()).offset(skip).limit(limit).all()
+    elif order_by == "id":
+        if desc_order:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.id.desc()).offset(skip).limit(limit).all()
+        else:
+            return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.id.asc()).offset(skip).limit(limit).all()
+        
+
 
 def get_bids(db: Session, skip:int, limit:int):
     return db.query(models.Bid).offset(skip).limit(limit).all()
+
+def get_highest_bid_by_item(db: Session, item_id: int):
+    return db.query(models.Bid).filter(models.Bid.item_id == item_id).order_by(models.Bid.price.desc(), models.Bid.bid_date.asc()).first()
 
 def get_bid(db: Session, bid_id: int):
     return db.query(models.Bid).filter(models.Bid.id == bid_id).first()
@@ -118,11 +143,8 @@ def get_bid(db: Session, bid_id: int):
 def get_bids_by_user(db: Session, user_id: int, skip:int, limit:int):
     return db.query(models.Bid).filter(models.Bid.bidder_id == user_id).offset(skip).limit(limit).all()
 
+def get_bids_by_user_for_item(db: Session, user_id: int, item_id: int, skip:int, limit:int):
+    return db.query(models.Bid).filter(models.Bid.bidder_id == user_id, models.Bid.item_id == item_id).offset(skip).limit(limit).all()
+
 def get_bids_by_user_for_auction(db: Session, user_id: int, auction_id: int, skip:int, limit:int):
     return db.query(models.Bid).filter(models.Bid.bidder_id == user_id and models.Bid.auction_id == auction_id).offset(skip).limit(limit).all()
-"""
-def get_bids_by_user_for_auction(db: Session, user_id: int, auction_id: int, skip:int, limit:int):
-    return db.query(models.Bid).filter(models.Bid.bidder_id == user_id ).filter(models.Bid.auction_id == auction_id).offset(skip).limit(limit).all()
-"""
-def get_bids_by_user_for_item(db: Session, user_id: int, item_id: int, skip:int, limit:int):
-    return db.query(models.Bid).filter(models.Bid.bidder_id == user_id).filter(models.Bid.item_id == item_id).offset(skip).limit(limit).all()

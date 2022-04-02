@@ -66,10 +66,24 @@ def read_item(item_id:int, db: Session = Depends(deps.get_db)):
     item = crud.get_item(db=db, item_id=item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    item_auction = crud.get_auction(db, item.auction_id)
-    if not item_auction.is_published:
+    item_published_status = crud.get_auction_published_status(db, item.auction_id).is_published
+    if not item_published_status:
         raise HTTPException(status_code=403, detail="Action forbidden: Item not published yet.")
     return item
+
+@router.get("/items/{item_id}/winner/", response_model=schemas.UserBase)
+def read_item_winner(item_id:int, db: Session = Depends(deps.get_db)):
+    """
+    Read the winner of an item.
+    """
+    item = crud.get_item(db=db, item_id=item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item_active_status = crud.get_auction_active_status(db, item.auction_id).is_active
+    if item_active_status:
+        raise HTTPException(status_code=403, detail="Action forbidden: Auction that this article belong to is not over yet.")
+    item_highest_bid = crud.get_highest_bid_by_item(db=db, item_id=item_id)
+    return crud.get_user(db=db, user_id=item_highest_bid.bidder_id)
 
 
 @router.get("/users/me/items/",response_model=List[schemas.Item], dependencies=[Depends(deps.get_current_user)])
