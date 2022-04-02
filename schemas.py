@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
 
 AUCTION_NUMBER = 0
@@ -71,10 +71,6 @@ class UserBase(BaseModel):
     class Config:
         orm_mode = True
 
-class UserUpdate(BaseModel):
-    #email: EmailStr
-    #password: str
-    is_active: bool
 
 class UserCreate(UserBase):
     password: str
@@ -82,7 +78,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
-    is_active: bool = True
+    is_active: bool
     auctions: List[Auction] = []
 
     class Config:
