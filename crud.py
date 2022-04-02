@@ -67,6 +67,12 @@ def get_auction_published_status(db: Session, auction_id: int):
 def get_auction_active_status(db: Session, auction_id: int):
     return db.query(models.Auction).filter(models.Auction.id == auction_id).with_entities(models.Auction.is_active).first()
 
+def get_active_auctions(db: Session, skip:int=0, limit: int = 100):
+    return db.query(models.Auction).filter(models.Auction.is_active == True).offset(skip).limit(limit).all()
+
+def get_user_active_auctions(db: Session, user_id: int, skip:int=0, limit: int = 100):
+    return db.query(models.Auction).filter(models.Auction.owner_id == user_id, models.Auction.is_active == True).offset(skip).limit(limit).all()
+
 def create_user_auction(db: Session, auction: schemas.AuctionCreate, user_id: int):
     creation_date= datetime.now()
     db_auction = models.Auction(**auction.dict(), owner_id=user_id, creation_date=creation_date)
@@ -75,8 +81,16 @@ def create_user_auction(db: Session, auction: schemas.AuctionCreate, user_id: in
     db.refresh(db_auction)
     return db_auction
 
-def get_auction_items(db: Session, auction_id: int, skip:int, limit:int):
+def get_auction_items(db: Session, auction_id: int, skip:int = 0, limit:int = 100):
     return db.query(models.Item).filter(models.Item.auction_id == auction_id).offset(skip).limit(limit).all()
+
+def get_active_items(db: Session, skip: int = 0, limit: int =100):
+    active_items = []
+    active_auctions = get_active_auctions(db, skip=skip, limit=limit)
+    for auction in active_auctions:
+        active_items.append(auction.items)
+    return active_items
+
 
 def get_auction_item(db: Session, auction_id: int, item_id: int):
     return db.query(models.Item).filter(models.Item.auction_id == auction_id, models.Item.id == item_id).first()
@@ -92,13 +106,13 @@ def create_auction_item(db: Session, item: schemas.ItemCreate, auction_id:int, o
 def get_item(db: Session, item_id: int):
     return db.query(models.Item).filter(models.Item.id == item_id).first()
 
-def get_items(db: Session, skip:int, limit:int):
+def get_items(db: Session, skip:int = 0, limit:int = 100):
     return db.query(models.Item).offset(skip).limit(limit).all()
 
-def get_user_items(db: Session, user_id: int, skip:int, limit:int):
+def get_user_items(db: Session, user_id: int, skip:int = 0, limit:int = 100):
     return db.query(models.Item).filter(models.Item.owner_id == user_id).offset(skip).limit(limit).all()
 
-def get_user_items_by_auction(db: Session, user_id: int, auction_id: int, skip:int, limit:int):
+def get_user_items_by_auction(db: Session, user_id: int, auction_id: int, skip:int = 0, limit:int = 100):
     return db.query(models.Item).filter(models.Item.owner_id == user_id, models.Item.auction_id == auction_id).offset(skip).limit(limit).all()
 
 def get_user_item(db: Session, user_id: int, item_id: int):
@@ -131,7 +145,7 @@ def get_bids_for_item(db:Session, item_id:int, order_by: schemas.BidOrder = "pri
         
 
 
-def get_bids(db: Session, skip:int, limit:int):
+def get_bids(db: Session, skip:int = 0, limit:int = 100):
     return db.query(models.Bid).offset(skip).limit(limit).all()
 
 def get_highest_bid_by_item(db: Session, item_id: int):
@@ -140,11 +154,11 @@ def get_highest_bid_by_item(db: Session, item_id: int):
 def get_bid(db: Session, bid_id: int):
     return db.query(models.Bid).filter(models.Bid.id == bid_id).first()
 
-def get_bids_by_user(db: Session, user_id: int, skip:int, limit:int):
+def get_bids_by_user(db: Session, user_id: int, skip:int = 0, limit:int =100):
     return db.query(models.Bid).filter(models.Bid.bidder_id == user_id).offset(skip).limit(limit).all()
 
-def get_bids_by_user_for_item(db: Session, user_id: int, item_id: int, skip:int, limit:int):
+def get_bids_by_user_for_item(db: Session, user_id: int, item_id: int, skip:int = 0, limit:int = 100):
     return db.query(models.Bid).filter(models.Bid.bidder_id == user_id, models.Bid.item_id == item_id).offset(skip).limit(limit).all()
 
-def get_bids_by_user_for_auction(db: Session, user_id: int, auction_id: int, skip:int, limit:int):
+def get_bids_by_user_for_auction(db: Session, user_id: int, auction_id: int, skip:int = 0, limit:int = 100):
     return db.query(models.Bid).filter(models.Bid.bidder_id == user_id and models.Bid.auction_id == auction_id).offset(skip).limit(limit).all()

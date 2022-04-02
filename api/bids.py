@@ -31,11 +31,10 @@ def create_bid_for_item(
     item_status = crud.get_auction_active_status(db=db, auction_id=db_item.auction_id).is_active
     if not item_status:
         raise HTTPException(status_code=403, detail="Auction that belong this item is not active.")
-    current_highest_bid = crud.get_highest_bid_by_item(db=db,item_id=item_id)
-
-    if current_highest_bid.price > bid.price:
-        raise HTTPException(status_code=403, detail="Action forbidden: Current highest bid(" + str(current_highest_bid.price) +") is greater than your bid.")
-
+    if db_item.bids:
+        current_highest_bid = crud.get_highest_bid_by_item(db=db,item_id=item_id)
+        if current_highest_bid.price > bid.price:
+            raise HTTPException(status_code=403, detail="Action forbidden: Current highest bid(" + str(current_highest_bid.price) +") is greater than your bid.")
     return crud.create_item_bid(db=db, bid=bid, item_id=item_id, owner_id=current_user.id)
 
 @router.get("/items/{item_id}/bids/", response_model=List[schemas.Bid])
